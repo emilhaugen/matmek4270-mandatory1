@@ -1,7 +1,6 @@
 import numpy as np
 import sympy as sp
 import scipy.sparse as sparse
-from poisson import Poisson 
 import matplotlib.pyplot as plt 
 from lagrange_int import Lagrangebasis, Lagrangefunction2D
 
