@@ -34,7 +34,6 @@ class Poisson2D:
 
     def create_mesh(self, N):
         """Create 2D mesh and store in self.xij and self.yij"""
-        # self.xij, self.yij ...
         self.N = N 
         self.h = self.L / N 
         x = np.linspace(0, self.L, self.N+1)
@@ -61,20 +60,13 @@ class Poisson2D:
         B = np.ones((self.N+1, self.N+1), dtype=bool)
         B[1:-1, 1:-1] = 0 
         binds = np.where(B.ravel() == 1)[0]
-        #fig = plt.figure(figsize=(4, 4))
-        #plt.imshow(B, cmap='gray_r')
-        #plt.gca().axis('off')
-        #plt.colorbar(ticks=[0, 1])
-        #print(binds)
         return binds 
 
     def assemble(self):
         """Return assembled matrix A and right hand side vector b"""
+        
         A = self.laplace() 
-        
-        # enforce BCs
         binds = self.get_boundary_indices()
-        
         A = A.tolil()
         for i in binds:
             A[i] = 0 
@@ -83,7 +75,7 @@ class Poisson2D:
 
         # self.x/y must be 2D (i.e. not from sparse) to make sure F is correct shape
         ONE = np.ones((self.N+1, self.N+1))
-        F = sp.lambdify((x,y), self.f)(self.xij, self.yij) * ONE # hack in case f is constant
+        F = sp.lambdify((x,y), self.f)(self.xij, self.yij) # * ONE # hack in case f is constant
         b = F.ravel()
         b[binds] = (sp.lambdify((x,y), self.ue)(self.xij, self.yij) * ONE).ravel()[binds]  
         return A, b 
@@ -136,20 +128,20 @@ class Poisson2D:
         r = [np.log(E[i-1]/E[i])/np.log(h[i-1]/h[i]) for i in range(1, m+1, 1)]
         return r, np.array(E), np.array(h)
 
-    def eval(self, xp, yp):
+    def eval(self, xp, yp, k=2):
         """Return u(x, y)
 
         Parameters
         ----------
         x, y : numbers
             The coordinates for evaluation (not necessarily a mesh pt.)
-
+        k    : int
+                order of approximation
         Returns
         -------
         The value of u(x, y)
 
         """
-        k = 2 # order of approximation 
         
         x_values = self.xij[:, 0] # index processing
         y_values = self.yij[0, :]
@@ -180,20 +172,15 @@ def test_interpolation():
     ue = sp.exp(sp.cos(4*sp.pi*x)*sp.sin(2*sp.pi*y))
     sol = Poisson2D(1, ue)
     U = sol(100)
-    assert abs(sol.eval(0.52, 0.63) - ue.subs({x: 0.52, y: 0.63}).n()) < 1e-3
-    assert abs(sol.eval(sol.h/2, 1-sol.h/2) - ue.subs({x: sol.h, y: 1-sol.h/2}).n()) < 1e-3
+    interpolate_at_point(sol, 0.52, 0.63, 1)
+    interpolate_at_point(sol, sol.h/2, 1-sol.h/2)
+    #assert abs(sol.eval(0.52, 0.63) - ue.subs({x: 0.52, y: 0.63}).n()) < 1e-3
+    #assert abs(sol.eval(sol.h/2, 1-sol.h/2) - ue.subs({x: sol.h, y: 1-sol.h/2}).n()) < 1e-3
 
-def mytest(sol):
-    u_solved = sol(N=100)
-    err, u_exact = sol.l2_error(u_solved)
-    
-    fig, (ax1, ax2) = plt.subplots(1, 2)
-    ax1.contourf(sol.xij, sol.yij, u_exact)
-    ax1.set_title('exact solution')
-    ax2.contourf(sol.xij, sol.yij, u_solved)
-    ax2.set_title(f'FD approximation, N={sol.N}')
-    plt.show()
-    print(f'l2 error for N={sol.N}: {err:.8f}')    
+def interpolate_at_point(sol, a, b, k=2):
+    diff = abs(sol.eval(a, b, k) - ue.subs({x: a, y: b}).n()) 
+    print(f'Interpolation error: {diff}, k={k} at {(a,b)}')
+    assert diff < 1e-3
 
 
 if __name__=='__main__':
@@ -202,11 +189,5 @@ if __name__=='__main__':
 
     u_solved = sol(N=100)
     err, u_exact = sol.l2_error(u_solved)
-    s = sol.eval(0.52, 0.63)
-    print(s, float(ue.subs({x: 0.52, y: 0.63})))
-    #print(u_solved[51:54, 62:65])
+    test_interpolation()
 
-    
-    #test_convergence_poisson2d()
-    print(ue.subs({x: sol.h, y: 1-sol.h/2}).n())
-    print(sol.eval(sol.h/2, 1-sol.h/2))
