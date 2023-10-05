@@ -253,9 +253,11 @@ def mytest():
         return sp.sin(sp.pi*x)*sp.sin(sp.pi*y)*sp.cos(t)
     f = sp.sin(x*sp.pi)*sp.sin(sp.pi*y)*sp.cos(t)
     g = sp.lambdify((x,y, t), ue())
-    #print(g(sol.xij, sol.yij, 1))
+    print(g(sol.xij, sol.yij, 1))
 
 if __name__=='__main__':
+
+    mytest()
 
     test_exact_wave2d()
     test_convergence_wave2d()
