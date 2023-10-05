@@ -174,20 +174,18 @@ def test_interpolation():
     U = sol(100)
     interpolate_at_point(sol, 0.52, 0.63, 1)
     interpolate_at_point(sol, sol.h/2, 1-sol.h/2)
-    #assert abs(sol.eval(0.52, 0.63) - ue.subs({x: 0.52, y: 0.63}).n()) < 1e-3
-    #assert abs(sol.eval(sol.h/2, 1-sol.h/2) - ue.subs({x: sol.h, y: 1-sol.h/2}).n()) < 1e-3
 
 def interpolate_at_point(sol, a, b, k=2):
-    diff = abs(sol.eval(a, b, k) - ue.subs({x: a, y: b}).n()) 
+    diff = abs(sol.eval(a, b, k) - sol.ue.subs({x: a, y: b}).n()) 
     print(f'Interpolation error: {diff}, k={k} at {(a,b)}')
     assert diff < 1e-3
 
 
 if __name__=='__main__':
-    ue = sp.exp(sp.cos(4*sp.pi*x)*sp.sin(2*sp.pi*y))
-    sol = Poisson2D(1, ue)
+    #ue = sp.exp(sp.cos(4*sp.pi*x)*sp.sin(2*sp.pi*y))
+    #sol = Poisson2D(1, ue)
 
-    u_solved = sol(N=100)
-    err, u_exact = sol.l2_error(u_solved)
+    #u_solved = sol(N=100)
+    #err, u_exact = sol.l2_error(u_solved)
     test_interpolation()
 
