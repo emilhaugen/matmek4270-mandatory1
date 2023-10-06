@@ -50,7 +50,7 @@ class Wave2D:
         """Return the dispersion coefficient. Computed by inserting excact solution into the equation."""
         kx = np.pi * self.mx 
         ky = np.pi * self.my
-        w = np.sqrt(kx**2 + ky**2) * self.c  # should divide by c?
+        w = np.sqrt(kx**2 + ky**2) * self.c  
         return w  
 
     def ue(self):
@@ -71,7 +71,9 @@ class Wave2D:
         Returns
         -------
         D : array 
-            differentiation matrix     
+            differentiation matrix 
+        e : tuple 
+            l2 error at first two time steps        
         """
         # follwing array is automatically zero at spatial boundaries
         self.Unm1 = U0 = sp.lambdify((x,y,t), self.ue())(self.xij, self.yij, 0) # t = 0 
@@ -115,7 +117,7 @@ class Wave2D:
             U[:, -1] = 0 
 
 
-    def __call__(self, N, Nt, cfl=0.5, c=1.0, mx=3, my=3, store_data=-1):
+    def __call__(self, N, Nt, store_data=-1):
         """Solve the wave equation
 
         Parameters
@@ -124,13 +126,6 @@ class Wave2D:
             The number of uniform intervals in each direction
         Nt : int
             Number of time steps
-        cfl : number
-            The CFL number
-        c : number
-            The wave speed
-        mx, my : int
-            Parameters for the standing wave
-        store_data : int
             Store the solution every store_data time step
             Note that if store_data is -1 then you should return the l2-error
             instead of data for plotting. This is used in `convergence_rates`.
@@ -147,17 +142,27 @@ class Wave2D:
         D, initial_errors = self.initialize()
         l2_error[0:2] = initial_errors
 
+        plot_data = {0 : self.Unm1.copy()}
+
+        if store_data == 1:
+            plot_data[1] = self.Un.copy() 
+
         print(f'Solving for t in {[0, self.dt*Nt]} with (N, Nt) = {N, Nt}.')
 
         for n in range(1, Nt):
             self.Unp1 = 2 * self.Un - self.Unm1 + \
-                (self.c**2 * self.dt**2) * (D @ self.Un + self.Un @ D.T)   
+                (self.c * self.dt)**2 * (D @ self.Un + self.Un @ D.T)   
             self.apply_bcs()
             self.Unm1 = self.Un 
             self.Un = self.Unp1
-            l2_error[n+1] = self.l2_error(self.Un, (n+1)*self.dt)  
-
-        return self.h, l2_error
+            l2_error[n+1] = self.l2_error(self.Un, (n+1)*self.dt)
+            if n % store_data == 0:
+                plot_data[n] = self.Unm1.copy()  
+        
+        if store_data == -1:
+            return self.h, l2_error
+        
+        return self.xij, self.yij, plot_data
 
     def convergence_rates(self, m=4, cfl=0.1, Nt=10, mx=3, my=3):
         """Compute convergence rates for a range of discretizations
@@ -184,7 +189,7 @@ class Wave2D:
         h = []
         N0 = 8
         for m in range(m):
-            dx, err = self(N0, Nt, cfl=cfl, mx=mx, my=my, store_data=-1)
+            dx, err = self(N0, Nt, store_data=-1)
             E.append(err[-1])
             h.append(dx)
             N0 *= 2
@@ -242,22 +247,7 @@ def test_exact_wave2d():
     assert E.max() < 1e-14
 
 
-def mytest():
-    Nt = 10
-    print(sol.dt*Nt)
-    err = sol.l2_error(sol.Un, sol.dt * Nt)
-    print(err)
-    m = 3 
-    def ue():
-        """Return the exact standing wave"""
-        return sp.sin(sp.pi*x)*sp.sin(sp.pi*y)*sp.cos(t)
-    f = sp.sin(x*sp.pi)*sp.sin(sp.pi*y)*sp.cos(t)
-    g = sp.lambdify((x,y, t), ue())
-    print(g(sol.xij, sol.yij, 1))
-
 if __name__=='__main__':
-
-    mytest()
 
     test_exact_wave2d()
     test_convergence_wave2d()
