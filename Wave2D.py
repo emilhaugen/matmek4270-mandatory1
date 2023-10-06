@@ -164,7 +164,7 @@ class Wave2D:
         
         return self.xij, self.yij, plot_data
 
-    def convergence_rates(self, m=4, cfl=0.1, Nt=10, mx=3, my=3):
+    def convergence_rates(self, m=4, Nt=10):
         """Compute convergence rates for a range of discretizations
 
         Parameters
@@ -237,15 +237,16 @@ def test_convergence_wave2d_neumann():
 def test_exact_wave2d():
     m = 2 
     C = 2**(-.5)
+    Nt = 10 
+    N = 50
 
     sol = Wave2D(cfl=C, c=1, mx=m, my=m)
-    r, E, h = sol.convergence_rates(m=4)
-    assert E.max() < 1e-14
+    h, E = sol(N, Nt, store_data=-1)
+    assert E.max() < 1e-15
 
-    sol = Wave2D_Neumann(cfl=C, c=1, mx=m, my=m)
-    r, E, h = sol.convergence_rates(m=4)
-    assert E.max() < 1e-14
-
+    sol_neumann = Wave2D_Neumann(cfl=C, c=1, mx=m, my=m)
+    h, E = sol_neumann(N, Nt, store_data=-1)
+    assert E.max() < 1e-15
 
 if __name__=='__main__':
 
